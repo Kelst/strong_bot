@@ -1,0 +1,192 @@
+Нажаль не зміг ідентифікувати наступних абонентів, можливо не очищений CID в білінгу:
+
+MAC: Невідомо
+Новий інтерфейс: EPON0/1:6
+IPoE VLAN: 106
+------------------------------
+
+MAC: Невідомо
+Новий інтерфейс: EPON0/1:22
+IPoE VLAN: 122
+------------------------------
+
+MAC: Невідомо
+Новий інтерфейс: EPON0/1:30
+IPoE VLAN: 130
+------------------------------
+
+MAC: 9CA2F4674732
+Новий інтерфейс: EPON0/1:31
+IPoE VLAN: 131
+------------------------------
+
+MAC: Невідомо
+Новий інтерфейс: EPON0/1:38
+IPoE VLAN: 138
+------------------------------
+
+MAC: Невідомо
+Новий інтерфейс: EPON0/1:42
+IPoE VLAN: 142
+------------------------------
+
+
+Логіни які ідентифіковані:
+
+Новий інтерфейс: EPON0/1:4
+Логін: kagarl7v15
+MAC: B4B024EDB199
+Server VLAN: 2359
+IPoE VLAN: 104
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=194147
+------------------------------
+
+Новий інтерфейс: EPON0/1:5
+Логін: kagarl14a
+MAC: B0A7B965D4A3
+Server VLAN: 2359
+IPoE VLAN: 105
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=93342
+------------------------------
+
+Новий інтерфейс: EPON0/1:14
+Логін: kagarl7b49
+MAC: 40EE150A382D
+Server VLAN: 2359
+IPoE VLAN: 114
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=173682
+------------------------------
+
+Новий інтерфейс: EPON0/1:17
+Логін: kagarl14b
+MAC: 789A18104A30
+Server VLAN: 2359
+IPoE VLAN: 117
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=89973
+------------------------------
+
+Новий інтерфейс: EPON0/1:18
+Логін: kagarl7v13
+MAC: 40EE155B89F5
+Server VLAN: 2359
+IPoE VLAN: 118
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=190364
+------------------------------
+
+Новий інтерфейс: EPON0/1:19
+Логін: kagarl7v6
+MAC: 0495E600C597
+Server VLAN: 2359
+IPoE VLAN: 119
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=173292
+------------------------------
+
+Новий інтерфейс: EPON0/1:21
+Логін: kagarl7v14
+MAC: 2887BAE7D1A9
+Server VLAN: 2359
+IPoE VLAN: 121
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=190860
+------------------------------
+
+Новий інтерфейс: EPON0/1:23
+Логін: kagarl7v19
+MAC: 6C5AB022BDB5
+Server VLAN: 2359
+IPoE VLAN: 123
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=189862
+------------------------------
+
+Новий інтерфейс: EPON0/1:25
+Логін: kagarl7v72
+MAC: 048D38DB985A
+Server VLAN: 2359
+IPoE VLAN: 125
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=185010
+------------------------------
+
+Новий інтерфейс: EPON0/1:28
+Логін: kagarl7v20
+MAC: F81A676C8177
+Server VLAN: 2359
+IPoE VLAN: 128
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=200314
+------------------------------
+
+Новий інтерфейс: EPON0/1:29
+Логін: kagarl7b38
+MAC: B40F3BC00E4C
+Server VLAN: 2359
+IPoE VLAN: 129
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=209878
+------------------------------
+
+Новий інтерфейс: EPON0/1:32
+Логін: kagarl7b44
+MAC: 40EE15138621
+Server VLAN: 2359
+IPoE VLAN: 132
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=188279
+------------------------------
+
+Новий інтерфейс: EPON0/1:36
+Логін: kagarl7v8
+MAC: 30DE4B83990B
+Server VLAN: 2359
+IPoE VLAN: 136
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=211819
+------------------------------
+
+Новий інтерфейс: EPON0/1:39
+Логін: kagarl7b67
+MAC: 40EE155B55C5
+Server VLAN: 2359
+IPoE VLAN: 139
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=213289
+------------------------------
+
+Новий інтерфейс: EPON0/1:40
+Логін: kagarl7v23
+MAC: 1C568E36B129
+Server VLAN: 2359
+IPoE VLAN: 140
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=214131
+------------------------------
+
+Новий інтерфейс: EPON0/1:41
+Логін: kagarl7b78
+MAC: A4A93098BB81
+Server VLAN: 2359
+IPoE VLAN: 141
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=215031
+------------------------------
+
+Новий інтерфейс: EPON0/1:43
+Логін: kagarl7v11
+MAC: C87F54E2ACC0
+Server VLAN: 2359
+IPoE VLAN: 143
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=215124
+------------------------------
+
+Новий інтерфейс: EPON0/1:44
+Логін: kagarl751
+MAC: BC62CED6B52E
+Server VLAN: 2359
+IPoE VLAN: 144
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=214839
+------------------------------
+
+Новий інтерфейс: EPON0/1:45
+Логін: kagarl7
+MAC: 1C568E3A9675
+Server VLAN: 2359
+IPoE VLAN: 145
+Білінг: https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=216614
+------------------------------
+
+
+Загальна статистика:
+Загальна кількість ONU: 25
+Ідентифіковано: 19
+Не ідентифіковано: 6

@@ -1,0 +1,40 @@
+enable
+config
+interface EPON 0/1
+no epon bind-onu sequence 1
+no epon bind-onu sequence 2
+no epon bind-onu sequence 3
+no epon bind-onu sequence 4
+no epon bind-onu sequence 5
+no epon bind-onu sequence 6
+no epon bind-onu sequence 7
+no epon bind-onu sequence 8
+no epon bind-onu sequence 9
+no epon bind-onu sequence 10
+no epon bind-onu sequence 11
+no epon bind-onu sequence 12
+no epon bind-onu sequence 13
+no epon bind-onu sequence 14
+no epon bind-onu sequence 15
+no epon bind-onu sequence 16
+no epon bind-onu sequence 18
+no epon bind-onu sequence 19
+no epon bind-onu sequence 20
+no epon bind-onu sequence 21
+no epon bind-onu sequence 22
+no epon bind-onu sequence 23
+no epon bind-onu sequence 24
+no epon bind-onu sequence 25
+no epon bind-onu sequence 26
+no epon bind-onu sequence 27
+no epon bind-onu sequence 32
+no epon bind-onu sequence 36
+no epon bind-onu sequence 39
+no epon bind-onu sequence 43
+no epon bind-onu sequence 45
+no epon bind-onu sequence 46
+no epon bind-onu sequence 47
+no epon bind-onu sequence 49
+no epon bind-onu sequence 50
+exit
+exit

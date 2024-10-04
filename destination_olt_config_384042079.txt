@@ -1,4 +1,6 @@
 enable
 config
+interface EPON0/5:15
+epon onu port 1 ctc vlan mode tag 266
 exit
 exit

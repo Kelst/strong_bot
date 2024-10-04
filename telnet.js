@@ -184,7 +184,6 @@ export function getTelnetConfig(HOST, user, password, sfp, maxSfp) {
   });
 }
 export function checkOnuStatus(HOST, user, password, onuMacs) {
-  // console.log(onuMacs.length,'ONULENGTH');
   return new Promise((resolve, reject) => {
     const tn = new net.Socket();
     let buffer = '';
@@ -196,35 +195,46 @@ export function checkOnuStatus(HOST, user, password, onuMacs) {
       ...onuMacs.map(mac => `show epon onu-information mac-address ${mac}\n`),
       "exit\n"
     ];
+    console.log(commands, "commandsvcommandscommandscommandscommandscommands");
     let onuStatuses = [];
 
     tn.connect(23, HOST, () => {
       console.log(`Connected to ${HOST}`);
     });
 
+    function sendNextCommand() {
+      if (commandIndex < commands.length) {
+        setTimeout(() => {
+          const command = commands[commandIndex];
+          if (command !== undefined) {
+            tn.write(command);
+            commandIndex++;
+          } else {
+            console.error(`Undefined command at index ${commandIndex}`);
+            commandIndex++; // Skip this command and move to the next
+          }
+        }, 1000); // 1 секунда затримки
+      } else {
+        processBuffer();
+        if (onuStatuses.length === onuMacs.length) {
+          tn.destroy();
+          resolve(onuStatuses);
+        }
+      }
+    }
+
     tn.on('data', (data) => {
       buffer += data.toString('ascii');
-      // console.log('Received:', data.toString());
 
       if (buffer.includes('Username:') || buffer.includes('Password:') || 
           buffer.includes('#') || buffer.includes('>')) {
-        
-        if (commandIndex < commands.length) {
-          // console.log('Sending:', commands[commandIndex]);
-          tn.write(commands[commandIndex]);
-          commandIndex++;
-        } else {
-          processBuffer();
-          if (onuStatuses.length === onuMacs.length) {
-            tn.destroy();
-            resolve(onuStatuses);
-          }
-        }
+        sendNextCommand();
       }
 
       if (buffer.includes('--More--') || buffer.includes(' --More-- ')) {
-        // console.log('Sending: <space>');
-        tn.write(' ');
+        setTimeout(() => {
+          tn.write(' ');
+        }, 1000); // 1 секунда затримки перед відправкою пробілу
         buffer = buffer.replace(/--More--|-+\s+\(q\) quit\s+\([^)]+\)\s+\([^)]+\)\s+\([^)]+\)/, '');
       }
     });
@@ -254,7 +264,6 @@ export function checkOnuStatus(HOST, user, password, onuMacs) {
             onuInfo.model = parts[2];
           }
           
-          // Check the next line for status information
           if (i + 1 < lines.length) {
             const nextLine = lines[i + 1].trim();
             const statusParts = nextLine.split(/\s+/).filter(part => part.trim() !== '');

@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
+import express from 'express';
+
 import path from 'path';
 import TelegramBot from 'node-telegram-bot-api';
 import { userHasArchive, showMenu, saveFile, OltData, isValidIp, isValidSfp, processArchive, pingHost, processMigratedONUs, generateCleanupConfig, generateMigrationConfig, updateMigratedONUsVlans, processMultiportONUs, getMigratedONUsMacs, processIpoeONUs, writeIpoeDataToFile, searchOnuConfig, writePppoeDataToFile,updateBillingData, resetSessions } from './tools.js';
@@ -7,15 +9,23 @@ import { getCustomerInfo, queryDatabaseBilling, takeIdDevice } from './api.js';
 import { checkOnuStatus, cleanupSfp, configureDestinationOlt, configureOpensvitVlan, getNameOlt, getOnuPowerLevels } from './telnet.js';
 import { getTelnetConfig } from './telnet.js';
 import { PPOE } from './constJS.js';
-import {  generateSfpTemplates, configurePppoeVlan, configureIpoeVlan} from './AdditionalFunction.js';
-
-
+import {  generateSfpTemplates, configurePppoeVlan, configureIpoeVlan} from './additionalFunction.js';
 
 dotenv.config();
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const bot = new TelegramBot(TOKEN, { polling: true });
+const URL = process.env.WEBHOOK_URL; // URL вашого сервера
+const PORT = process.env.PORT || 3033;
 
+const app = express();
+const bot = new TelegramBot(TOKEN);
+bot.setWebHook(`${URL}/bot${TOKEN}`);
+console.log(`${URL}/bot${TOKEN}`);
+app.use(express.json());
+app.post(`/bot${TOKEN}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
 const userStates = new Map();
 
 
@@ -257,6 +267,7 @@ bot.on('text', async (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id;
   const text = msg.text;
+  console.log('Отримано повідомлення:', JSON.stringify(msg, null, 2));
 
   if (!userStates.has(userId)) {
     resetUserState(userId);
@@ -511,14 +522,15 @@ for (let i = 0; i < summary.length; i += maxLength) {
       try {
         const onuMacs = userState.migratedONUs.map(onu => onu.mac);
         console.log(userState.migratedONUs, "userState.migratedONUs");
-        
+        console.log(onuMacs);
         const onuStatuses = await checkOnuStatus(
           userState.destinationOlt.ip,
           userState.destinationOlt.telnetLogin,
           userState.destinationOlt.telnetPass,
           onuMacs
         );
-  
+        console.log(onuStatuses,onuStatuses);
+
         const activeONUs = onuStatuses.filter(onu => onu.deregReason == 'auto-configured');
         const inactiveONUs = onuStatuses.filter(onu => onu.deregReason != 'auto-configured');
         
@@ -786,4 +798,8 @@ function handleSfpNumberInput(chatId, input, userId) {
     generateSfpTemplates(chatId, bot, sfpNumber);
   }
 }
-console.log('Бот запущено');
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+console.log('Bot started with webhook');

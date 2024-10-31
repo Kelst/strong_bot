@@ -280,7 +280,7 @@ export async function getCustomerInfo(macsData) {
   const customerIds = [];
   const macToDataMap = new Map();
 
-  console.log(`Starting processing for ${macsData.length} MAC addresses`);
+  // console.log(`Starting processing for ${macsData.length} MAC addresses`);
 
   // Перший прохід: отримуємо всі customer_id
   for (const item of macsData) {
@@ -326,7 +326,7 @@ export async function getCustomerInfo(macsData) {
       const response2 = await fetch(`${url}?${params2}`);
       const data2 = await response2.json();
 
-      console.log('get_data response:', JSON.stringify(data2, null, 2));
+      // console.log('get_data response:', JSON.stringify(data2, null, 2));
 
       if (data2.result == "OK" && data2.data) {
         const processCustomerData = (customerData) => {
@@ -334,7 +334,7 @@ export async function getCustomerInfo(macsData) {
           const originalData = macToDataMap.get(customerId);
           
           if (originalData) {
-            console.log(`Processing customer data for ID ${customerId}`);
+            // console.log(`Processing customer data for ID ${customerId}`);
             
             results.push({
               interface: originalData.interface,
@@ -344,7 +344,7 @@ export async function getCustomerInfo(macsData) {
               login: customerData.login,
               billing_id: customerData.billing_id,
             });
-            console.log(`Added result for customer ID ${customerId}`);
+            // console.log(`Added result for customer ID ${customerId}`);
           } else {
             console.log(`No original data found for customer ID ${customerId}`);
           }
@@ -373,7 +373,7 @@ export async function getCustomerInfo(macsData) {
     }
   }
 
-  console.log(`Identified ${results.length} out of ${macsData.length} customers`);
+  // console.log(`Identified ${results.length} out of ${macsData.length} customers`);
   return results;
 }
 const pool = mysql.createPool({
@@ -395,3 +395,93 @@ export async function queryDatabaseBilling(sql) {
     }
   }
   
+  export async function getUserBillingData(login) {
+    try {
+      // Перший запит для отримання uid
+      const uidQuery = `SELECT uid FROM users WHERE id = '${login}'`;
+      const uidResult = await queryDatabaseBilling(uidQuery);
+  
+      if (uidResult.length === 0) {
+        return null; // Користувача не знайдено
+      }
+  
+      const uid = uidResult[0].uid;
+  
+      // Другий запит для отримання коментарів
+      const commentsQuery = `SELECT comments FROM users_pi WHERE uid = '${uid}'`;
+      const commentsResult = await queryDatabaseBilling(commentsQuery);
+  
+      const comments = commentsResult.length > 0 ? commentsResult[0].comments : null;
+  
+      return {
+        uid,
+        login,
+        comments
+      };
+    } catch (error) {
+      console.error("Error in getUserBillingData:", error);
+      throw error;
+    }
+  }
+
+  export async function getOntData(mac) {
+    const GET1 = {
+      key: api_key,
+      cat: 'device',
+      action: 'get_ont_data',
+      id: mac
+    };
+  
+    const params = new URLSearchParams(GET1);
+    const response = await fetch(`${url}?${params}`);
+    const data = await response.json();
+  
+    if (data.result === "OK" && data.data) {
+      const { iface_name, device_id, level_onu_rx } = data.data;
+      return { iface_name, device_id, level_onu_rx };
+    }
+  
+    return null;
+  }
+  
+  export async function getOntData1(mac) {
+    const GET1 = {
+      key: api_key,
+      cat: 'device',
+      action: 'get_ont_data',
+      id: mac
+    };
+  
+    const params = new URLSearchParams(GET1);
+    const response = await fetch(`${url}?${params}`);
+    const data = await response.json();
+  
+    if (data.result === "OK" && data.data) {
+      const { iface_name, device_id, level_onu_rx } = data.data;
+      return { iface_name, device_id, level_onu_rx };
+    }
+  
+    return null;
+  }
+  
+  export async function getOltData1(deviceId) {
+    const GET2 = {
+      key: api_key,
+      cat: 'device',
+      action: 'get_data',
+      object_type: 'olt',
+      object_id: deviceId
+    };
+  
+    const params = new URLSearchParams(GET2);
+    const response = await fetch(`${url}?${params}`);
+    const data = await response.json();
+  
+    if (data.result === "OK" && data.data) {
+      const oltData = Object.values(data.data)[0];
+      const { host, telnet_login, telnet_pass } = oltData;
+      return { host, telnet_login, telnet_pass };
+    }
+  
+    return null;
+  }

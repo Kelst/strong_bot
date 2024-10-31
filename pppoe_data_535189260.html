@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPPoE ONU Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .onu-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-around;
+        }
+        .onu-item {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            width: calc(33% - 20px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: box-shadow 0.3s ease;
+        }
+        .onu-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .onu-item p {
+            margin: 5px 0;
+        }
+        .onu-item strong {
+            color: #2980b9;
+        }
+        .stats {
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        a:hover {
+            color: #2980b9;
+        }
+        a:visited {
+            color: #8e44ad;
+        }
+        @media (max-width: 768px) {
+            .onu-item {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Дані PPPoE ONU</h1>
+  <h2>Неідентифіковані PPPoE абоненти</h2><div class="onu-container">
+        <div class="onu-item">
+          <p><strong>MAC:</strong> Невідомо</p>
+          <p><strong>Новий інтерфейс:</strong> EPON0/12:1</p>
+          <p><strong>PPPoE VLAN:</strong> Невідомо</p>
+        </div>
+      </div><h2>Ідентифіковані PPPoE абоненти</h2><div class="onu-container">
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/12:12</p>
+          <p><strong>Логін:</strong> stas20</p>
+          <p><strong>MAC:</strong> 502FA8B13E01</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=14980" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/12:18</p>
+          <p><strong>Логін:</strong> stas228</p>
+          <p><strong>MAC:</strong> E4BEED69F4FB</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=35956" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/12:11</p>
+          <p><strong>Логін:</strong> stas22100</p>
+          <p><strong>MAC:</strong> C025E9E7A62B</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=134538" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      </div>
+    <div class="stats">
+      <h2>Загальна статистика PPPoE абонентів</h2>
+      <p><strong>Загальна кількість PPPoE ONU:</strong> 4</p>
+      <p><strong>Ідентифіковано:</strong> 3</p>
+      <p><strong>Не ідентифіковано:</strong> 1</p>
+    </div>
+  
+    </body>
+    </html>
+  

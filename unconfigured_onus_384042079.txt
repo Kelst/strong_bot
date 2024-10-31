@@ -1,0 +1,7 @@
+MAC: e067.b332.ef44, Old Interface: EPON0/1:4, New Interface: EPON0/1:4
+MAC: 80f7.a61a.6cd9, Old Interface: EPON0/1:6, New Interface: EPON0/1:6
+MAC: 80f7.a6ac.a11a, Old Interface: EPON0/1:11, New Interface: EPON0/1:11
+MAC: 80f7.a6ac.b6d6, Old Interface: EPON0/1:12, New Interface: EPON0/1:12
+MAC: 80f7.a6ac.b6dc, Old Interface: EPON0/1:13, New Interface: EPON0/1:13
+MAC: 80f7.a607.f34f, Old Interface: EPON0/1:48, New Interface: EPON0/1:48
+MAC: e0e8.e6ff.7443, Old Interface: EPON0/1:62, New Interface: EPON0/1:62

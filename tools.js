@@ -124,14 +124,14 @@ export async function processArchive(userId, sourceOlt, config = null) {
     const zipEntries = zip.getEntries();
 
     diagnosticInfo += `Шукаємо конфігурацію для OLT: ${sourceOlt.name}\n`;
-    diagnosticInfo += `Кількість файлів в архіві: ${zipEntries.length}\n`;
+    // diagnosticInfo += `Кількість файлів в архіві: ${zipEntries.length}\n`;
 
     let oltFolder = null;
     for (const entry of zipEntries) {
       const folderName = path.basename(path.dirname(entry.entryName));
       if (folderName === sourceOlt.name) {
         oltFolder = folderName;
-        diagnosticInfo += `Знайдено папку OLT: ${folderName}\n`;
+        // diagnosticInfo += `Знайдено папку OLT: ${folderName}\n`;
         break;
       }
     }
@@ -144,7 +144,7 @@ export async function processArchive(userId, sourceOlt, config = null) {
     for (const entry of zipEntries) {
       if (entry.entryName.includes(`${oltFolder}/`) && entry.name === 'running-config.conf') {
         runningConfig = entry.getData().toString('utf8');
-        diagnosticInfo += `Знайдено файл конфігурації: ${entry.entryName}\n`;
+        // diagnosticInfo += `Знайдено файл конфігурації: ${entry.entryName}\n`;
         break;
       }
     }
@@ -609,6 +609,21 @@ export async function updateBillingData(processedIpoeONUs, destinationOltPvid) {
 
   return { updatedONUs, errors };
 }
+export async function updateBillingDataSingle(uid, ipoeVlan, destinationOltPvid, newMacAddress) {
+  try {
+    const sql = `UPDATE internet_main SET vlan = ${ipoeVlan}, server_vlan = ${destinationOltPvid}, cid = '${newMacAddress}' WHERE uid = ${uid}`;
+    await queryDatabaseBilling(sql);
+    return { success: true, message: `
+    ✅ *Успішне оновлення даних в білінгу*
+    🔄 Статус: Завершено
+    📊 Операція: Оновлення даних користувача
+    ✨ Дані успішно синхронізовано з системою білінгу.` 
+      };
+  } catch (error) {
+    console.error(`Error updating billing data for ONU ${uid}:`, error);
+    return { success: false, message: `Помилка оновлення даних в білінгу: ${error.message}` };
+  }
+}
 function formatMac(mac) {
   // Видаляємо всі не-алфавітні та не-цифрові символи
   const cleanMac = mac.replace(/[^a-fA-F0-9]/g, '');
@@ -663,6 +678,45 @@ export async function resetSessions(processedIpoeONUs) {
   }
 
   return { successfulResets, failedResets };
+}
+export async function resetSessionSingle(uid, newMacAddress) {
+  try {
+    // Отримуємо інформацію про сесію з бази даних
+    const sql = `SELECT user_name, nas_port_id, acct_session_id, nas_id FROM internet_online WHERE uid=${uid}`;
+    const sessionInfo = await queryDatabaseBilling(sql);
+
+    if (sessionInfo.length > 0) {
+      const session = sessionInfo[0];
+      
+      // Виконуємо POST-запит для скидання сесії
+      const response = await fetch(`https://billing.intelekt.cv.ua:9443/api.cgi/internet/${uid}/session/hangup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'KEY': 'ij8knawoygsyirralsulvEnMafdaf'
+        },
+        body: JSON.stringify({
+          acctSessionId: session.acct_session_id,
+          nasId: session.nas_id,
+          nasPortId: session.nas_port_id,
+          userName: session.user_name
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.result === "OK") {
+        return { success: true, message: 'Сесію успішно скинуто' };
+      } else {
+        return { success: false, message: 'Не вдалося скинути сесію' };
+      }
+    } else {
+      return { success: false, message: 'Активну сесію не знайдено' };
+    }
+  } catch (error) {
+    console.error(`Error resetting session for ONU ${uid}:`, error);
+    return { success: false, message: `Помилка скидання сесії: ${error.message}` };
+  }
 }
 export function writeIpoeDataToFile(processedIpoeONUs, userId, destinationOltPvid) {
   const fileName = `ipoe_data_${userId}.html`;
@@ -1000,3 +1054,92 @@ export async function searchOnuConfig(macAddress, userId) {
     await execAsync(`rm -rf "${tempDir}"`).catch(console.error);
   }
 }
+export async function sendAnimatedWaitingMessage(chatId, bot) {
+  const stages = [
+    '🔍 Отримання інформації про OLT',
+    '🔍 Отримання інформації про OLT .',
+    '🔍 Отримання інформації про OLT ..',
+    '🔍 Отримання інформації про OLT ...'
+  ];
+  
+  const message = await bot.sendMessage(chatId, stages[0], { parse_mode: 'Markdown' });
+  
+  let currentStage = 0;
+  const intervalId = setInterval(() => {
+    currentStage = (currentStage + 1) % stages.length;
+    bot.editMessageText(stages[currentStage], {
+      chat_id: chatId,
+      message_id: message.message_id,
+      parse_mode: 'Markdown'
+    });
+  }, 500);
+
+  return {
+    stop: () => {
+      clearInterval(intervalId);
+      bot.editMessageText('✅ Інформацію про OLT отримано!', {
+        chat_id: chatId,
+        message_id: message.message_id,
+        parse_mode: 'Markdown'
+      });
+    }
+  };
+}
+
+
+export  async function askForSourceSfp(bot,chatId, userState) {
+  const message = `
+🔢 *Введення номера SFP для першої OLT*
+Будь ласка, введіть номер SFP першої OLT:
+📊 Доступний діапазон: від 1 до ${userState.sourceOlt.maxSfp}
+  `;
+
+  await bot.sendMessage(chatId, message, { 
+    parse_mode: 'Markdown',
+   
+  });
+
+  // Додаткове повідомлення з прикладом
+
+}
+
+// Для другої OLT
+export async function askForDestinationSfp(bot,chatId, userState) {
+  const message = `
+🔢 *Введення номера SFP для другої OLT*
+Будь ласка, введіть номер SFP другої OLT:
+📊 Доступний діапазон: від 1 до ${userState.destinationOlt.maxSfp}
+  `;
+
+  await bot.sendMessage(chatId, message, { 
+    parse_mode: 'Markdown',
+    
+  });
+
+  // Додаткове повідомлення з нагадуванням
+
+}
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function retryWithBackoff(operation, retries = 5, backoff = 300) {
+  let lastError;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (error.message.includes('ETELEGRAM: 429')) {
+        console.log(`Attempt ${i + 1} failed, retrying in ${backoff}ms`);
+        await wait(backoff);
+        backoff *= 2; // Експоненціальне збільшення затримки
+        lastError = error;
+      } else {
+        throw error; // Якщо помилка не пов'язана з обмеженням швидкості, пробросити її далі
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+export { retryWithBackoff };

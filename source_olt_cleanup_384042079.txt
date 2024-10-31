@@ -1,6 +1,41 @@
 enable
 config
-interface EPON 0/5
-no epon bind-onu sequence 15
+interface EPON 0/1
+no epon bind-onu sequence 1
+no epon bind-onu sequence 2
+no epon bind-onu sequence 3
+no epon bind-onu sequence 4
+no epon bind-onu sequence 5
+no epon bind-onu sequence 6
+no epon bind-onu sequence 7
+no epon bind-onu sequence 9
+no epon bind-onu sequence 10
+no epon bind-onu sequence 11
+no epon bind-onu sequence 12
+no epon bind-onu sequence 13
+no epon bind-onu sequence 14
+no epon bind-onu sequence 19
+no epon bind-onu sequence 27
+no epon bind-onu sequence 28
+no epon bind-onu sequence 30
+no epon bind-onu sequence 31
+no epon bind-onu sequence 32
+no epon bind-onu sequence 34
+no epon bind-onu sequence 35
+no epon bind-onu sequence 37
+no epon bind-onu sequence 38
+no epon bind-onu sequence 40
+no epon bind-onu sequence 45
+no epon bind-onu sequence 46
+no epon bind-onu sequence 47
+no epon bind-onu sequence 48
+no epon bind-onu sequence 51
+no epon bind-onu sequence 52
+no epon bind-onu sequence 53
+no epon bind-onu sequence 55
+no epon bind-onu sequence 56
+no epon bind-onu sequence 57
+no epon bind-onu sequence 62
+no epon bind-onu sequence 63
 exit
 exit

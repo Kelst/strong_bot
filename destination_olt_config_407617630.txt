@@ -1,0 +1,8 @@
+enable
+config
+interface EPON0/9:7
+no epon onu port 1 ctc vlan mode
+interface EPON0/9:12
+no epon onu port 1 ctc vlan mode
+exit
+exit

@@ -1,0 +1,12 @@
+enable
+config
+interface EPON0/12:1
+epon onu port 1 ctc vlan mode tag 34
+interface EPON0/12:12
+epon onu port 1 ctc vlan mode tag 34
+interface EPON0/12:18
+epon onu port 1 ctc vlan mode tag 34
+interface EPON0/12:11
+epon onu port 1 ctc vlan mode tag 34
+exit
+exit

@@ -4,12 +4,12 @@ import express from 'express';
 
 import path from 'path';
 import TelegramBot from 'node-telegram-bot-api';
-import { userHasArchive, showMenu, saveFile, OltData, isValidIp, isValidSfp, processArchive, pingHost, processMigratedONUs, generateCleanupConfig, generateMigrationConfig, updateMigratedONUsVlans, processMultiportONUs, getMigratedONUsMacs, processIpoeONUs, writeIpoeDataToFile, searchOnuConfig, writePppoeDataToFile,updateBillingData, resetSessions } from './tools.js';
+import { userHasArchive, showMenu, saveFile, OltData, isValidIp, isValidSfp, processArchive, pingHost, processMigratedONUs, generateCleanupConfig, generateMigrationConfig, updateMigratedONUsVlans, processMultiportONUs, getMigratedONUsMacs, processIpoeONUs, writeIpoeDataToFile, searchOnuConfig, writePppoeDataToFile,updateBillingData, resetSessions, sendAnimatedWaitingMessage, askForSourceSfp, askForDestinationSfp } from './tools.js';
 import { getCustomerInfo, queryDatabaseBilling, takeIdDevice } from './api.js';
 import { checkOnuStatus, cleanupSfp, configureDestinationOlt, configureOpensvitVlan, getNameOlt, getOnuPowerLevels } from './telnet.js';
 import { getTelnetConfig } from './telnet.js';
 import { PPOE } from './constJS.js';
-import {  generateSfpTemplates, configurePppoeVlan, configureIpoeVlan} from './additionalFunction.js';
+import {  generateSfpTemplates, resetGuestSesion, configureIpoeVlan} from './additionalFunction.js';
 
 dotenv.config();
 
@@ -34,7 +34,7 @@ const userStates = new Map();
 function resetUserState(userId) {
   userStates.set(userId, {
     mode: 'main',
-    step: 'start',
+    step: 'source_ip',
     sourceOlt: new OltData(),
     destinationOlt: new OltData(),
     waitingForSfpNumber: false // Новий прапорець
@@ -42,29 +42,27 @@ function resetUserState(userId) {
 }
 
 
-function proceedToNextStep(chatId, userId) {
+async function proceedToNextStep(chatId, userId) {
   const userState = userStates.get(userId);
   if (userState.step === 'source_ip' || userState.step === 'source_name') {
     userState.step = 'source_sfp';
-    bot.sendMessage(chatId, `Введіть номер SFP першої OLT (від 1 до ${userState.sourceOlt.maxSfp}):`);
+   await askForSourceSfp(bot,chatId, userState);
   } else if (userState.step === 'destination_ip' || userState.step === 'destination_name') {
     userState.step = 'destination_sfp';
-    bot.sendMessage(chatId, `Введіть номер SFP другої OLT (від 1 до ${userState.destinationOlt.maxSfp}):`);
+  await  askForDestinationSfp(bot,chatId, userState);
   }
-  showMenu(bot, chatId, true);
+  showMenu(bot, chatId, true, false, true, false, 'main');
 }
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  const userId = msg.from.id;
-  
-  resetUserState(userId);
-  
+  userStates.mode='main'
+  console.log('start');
   bot.sendMessage(chatId, 'Виберіть режим роботи:', {
     reply_markup: {
       keyboard: [
         ['Перенесення конфігів'],
-        // ['Додаткові опції']
+        ['Додаткові опції']
       ],
       resize_keyboard: true,
       one_time_keyboard: false
@@ -78,7 +76,7 @@ bot.onText(/\/menu/, (msg) => {
     reply_markup: {
       keyboard: [
         ['Перенесення конфігів'],
-        // ['Додаткові опції']
+        ['Додаткові опції']
       ],
       resize_keyboard: true,
       one_time_keyboard: false
@@ -279,13 +277,30 @@ bot.on('text', async (msg) => {
     // Ігноруємо обробку, оскільки вона вже оброблена в bot.onText(/\/menu/, ...)
     return;
   }
+  if (text === '/start') {
+    // Ігноруємо обробку, оскільки вона вже оброблена в bot.onText(/\/menu/, ...)
+    return;
+  }
 
   if (text === 'Перенесення конфігів') {
     userState.mode = 'main';
     userState.step = 'start';
     userState.waitingForSfpNumber = false;
-    bot.sendMessage(chatId, 'Режим перенесення конфігів активовано.');
-    if (userHasArchive(userId)) {
+    const message = `
+    🔄 *Режим перенесення конфігів активовано* 🔄
+    
+    📋 Цей режим дозволяє вам:
+    • Перенести конфігурації між OLT
+    • Автоматизувати процес міграції ONU
+    • Оновити налаштування для абонентів
+    
+    🚀 Для початку роботи виберіть опцію в меню нижче.
+    
+    ⚠️ _Будь ласка, переконайтеся, що у вас є всі необхідні дані перед початком процесу._
+      `;
+      
+       
+       if (userHasArchive(userId)) {
       showMenu(bot, chatId, true);
     } else {
       bot.sendMessage(chatId, 'Будь ласка, відправте архів з конфігами OLT.');
@@ -295,29 +310,60 @@ bot.on('text', async (msg) => {
     userState.waitingForSfpNumber = false;
     showAdditionalMenu(chatId);
   } else if (userState.mode === 'main') {
-  if (text === 'Перенести конфіг' || text === 'Опрацювати') {
+  if (text === 'Перенести конфіг' || text === 'Опрацювати'||text==='Почати з початку') {
+    if(text==='Почати з початку'){
+      console.log("FFF");
+      resetUserState(userId);
+      userState.step = 'source_ip';
+            // await bot.sendMessage(chatId, 'Процес розпочато з початку. Будь ласка, введіть IP-адресу першої OLT, з якої переносять конфіг:', {
+      //   reply_markup: {
+      //     keyboard: [
+      //       ['❓ Інструкція'],
+      //       ['🔙 Повернутися до головного меню']
+      //     ],
+      //     resize_keyboard: true,
+      //     one_time_keyboard: false
+      //   }
+      // });
+    }
     if (userHasArchive(userId)) {
       if (userState.step === 'completed') {
         showMenu(bot, chatId, false, false, true, false);
-        
-        bot.sendMessage(chatId, 'Починаю опрацювання конфігу. Це може зайняти кілька хвилин...', {
-          reply_markup: {
-            remove_keyboard: true
-          }
-        });
+        let statusMessage;
+      
         try {
-          bot.sendMessage(chatId, 'Обробляю конфігурацію першої OLT...');
+          statusMessage = await bot.sendMessage(chatId, '🔄 Починаю опрацювання конфігурації. Це може зайняти кілька хвилин...', {
+            reply_markup: { remove_keyboard: true }
+          });
+      
+          const updateStatus = async (text) => {
+            try {
+              await bot.editMessageText(text, {
+                chat_id: chatId,
+                message_id: statusMessage.message_id
+              });
+            } catch (error) {
+              console.error('Помилка при оновленні статусу:', error);
+              // Якщо не вдалося відредагувати, відправляємо нове повідомлення
+              statusMessage = await bot.sendMessage(chatId, text);
+            }
+          };
+      
+          await updateStatus('📊 Обробляю конфігурацію першої OLT...');
           const sourceResult = await processArchive(userId, userState.sourceOlt);
-          //  console.log( sourceResult.onuConfigs,"onuConfigs");
           userState.sourceOlt.pvid = sourceResult.pvid;
-          bot.sendMessage(chatId, 'Перевіряю доступність другої OLT...');
+      
+          await updateStatus('🔍 Перевіряю доступність другої OLT...');
           const isDestinationOltReachable = await pingHost(userState.destinationOlt.ip);
           if (!isDestinationOltReachable) {
-            bot.sendMessage(chatId, `OLT на яку перейшли ONU (${userState.destinationOlt.ip}) не на зв'язку. Будь ласка, перевірте з'єднання та спробуйте знову.`);
+            await bot.sendMessage(chatId, `❌ OLT на яку перейшли ONU (${userState.destinationOlt.ip}) не на зв'язку. Будь ласка, перевірте з'єднання та спробуйте знову.`);
             return;
           }
           
-          bot.sendMessage(chatId, 'Отримую конфігурацію другої OLT...');
+          await updateStatus('📥 Отримую конфігурацію другої OLT...');
+          console.log(userState.destinationOlt.telnetLogin,
+            userState.destinationOlt.telnetPass);
+          
           const destinationConfig = await getTelnetConfig(
             userState.destinationOlt.ip,
             userState.destinationOlt.telnetLogin,
@@ -325,124 +371,106 @@ bot.on('text', async (msg) => {
             userState.destinationOlt.sfp,
             userState.destinationOlt.maxSfp
           );
-          // console.log(destinationConfig);
-          bot.sendMessage(chatId, 'Обробляю конфігурацію другої OLT...');
+      console.log(destinationConfig,"destinationConfig");
+          await updateStatus('📊 Обробляю конфігурацію другої OLT...');
           const destinationResult = await processArchive(userId, userState.destinationOlt, destinationConfig);
           userState.destinationOlt.pvid = destinationResult.pvid;
           
           // Обробка мігрованих ONU
           const migratedONUs1 = processMigratedONUs(sourceResult, destinationResult);
           const updatedMigratedONUs = await updateMigratedONUsVlans(migratedONUs1, userState.sourceOlt);
-          // console.log(updatedMigratedONUs,"updatedMigratedONUs");
-          const macs=await getMigratedONUsMacs(migratedONUs1, userState.sourceOlt,true);
-          const macsP=await getMigratedONUsMacs(migratedONUs1, userState.sourceOlt);
+          
+          const macs = await getMigratedONUsMacs(migratedONUs1, userState.sourceOlt, true);
+          const macsP = await getMigratedONUsMacs(migratedONUs1, userState.sourceOlt);
           const customerInfo = await getCustomerInfo(macs);
-          //  console.log(macs,"macs");
           const customerInfoP = await getCustomerInfo(macsP);
-        
-           
+          
           // Додаємо старий конфіг до кожної ONU
           const migratedONUs = updatedMigratedONUs.map(onu => {
             const sourceONU = sourceResult.onuConfigs.find(sourceONU => sourceONU.mac === onu.mac);
             return {
               ...onu,
-              oldConfig: sourceONU ? sourceONU.config : 'Not available'
+              oldConfig: sourceONU ? sourceONU.config : 'Недоступно'
             };
           });
-          // console.log(JSON.stringify(sourceResult.onuConfigs),"sourceONU");
-          userState.migratedONUs = migratedONUs; // Зберігаємо мігровані ONU в стані користувача
-        
+          userState.migratedONUs = migratedONUs;
+      
           const formatOltSummary = (olt, result) => `
           🔹 *${olt.name}*
              SFP: ${olt.sfp}
-            ${olt.OPENSVIT?`'OPENSVIT_VLAN':${olt.OPENSVIT}`:''}
+            ${olt.OPENSVIT ? `OPENSVIT_VLAN: ${olt.OPENSVIT}` : ''}
              Знайдено конфігурацій ONU: ${result.onuConfigs.length}
              ${result.diagnosticInfo}`;
           
-          const createSummary = (userState, sourceResult, destinationResult, migratedONUs) => {
-            const summary = `
+          const createSummary = (userState, sourceResult, destinationResult, migratedONUs) => `
           📊 *Результати обробки:*
-          
+      
           ${formatOltSummary(userState.sourceOlt, sourceResult)}
-          
+      
           ${formatOltSummary(userState.destinationOlt, destinationResult)}
-          
+      
           📡 *Мігровані ONU:* ${migratedONUs.length}
           `;
-          
-            return summary.trim();
-          };
+      
           let summary = createSummary(userState, sourceResult, destinationResult, migratedONUs);
-          function escapeMarkdown(text) {
-            return text.replace(/([_*\[\]()~`>#+=|{}.!-])/g, '\\$1');
+          summary = summary.replace(/([_*\[\]()~`>#+=|{}.!-])/g, '\\$1');
+      
+          // Видаляємо статусне повідомлення
+          try {
+            await bot.deleteMessage(chatId, statusMessage.message_id);
+          } catch (error) {
+            console.error('Помилка при видаленні статусного повідомлення:', error);
           }
-          
-     summary=escapeMarkdown(summary)
-          const maxLength = 4000; // Максимальна довжина повідомлення в Telegram
-for (let i = 0; i < summary.length; i += maxLength) {
-  const chunk = summary.slice(i, i + maxLength);
-  await bot.sendMessage(chatId, chunk,{ parse_mode: 'Markdown' });
-}
-// console.log(summary,"summarysummarysummarysummarysummary");
-  
-          const keyboard = [
-            ['Почати з початку']
-          ];
-          
-          const opts = {
-            reply_markup: JSON.stringify({
-              keyboard: keyboard,
+      
+          const maxLength = 4000;
+          for (let i = 0; i < summary.length; i += maxLength) {
+            const chunk = summary.slice(i, i + maxLength);
+            await bot.sendMessage(chatId, chunk, { parse_mode: 'Markdown' });
+          }
+      
+          await bot.sendMessage(chatId, 'Виберіть наступну дію:', {
+            reply_markup: {
+              keyboard: [['Почати з початку']],
               resize_keyboard: true,
               one_time_keyboard: false
-            })
-          };
-          bot.sendMessage(chatId, '->|', opts);
-          // Відправляємо детальну інформацію про мігровані ONU
+            }
+          });
+      
           if (migratedONUs.length > 0) {
             const result = generateMigrationConfig(migratedONUs, userState.sourceOlt, userState.destinationOlt, msg.from.id);
             const cleanupConfigFile = generateCleanupConfig(migratedONUs, userState.sourceOlt, msg.from.id);
             
             const processedIpoeONUs = processIpoeONUs(customerInfo, result.ipoeONUs, userState.destinationOlt.pvid);
             const processedPppoeONUs = processIpoeONUs(customerInfoP, result.pppoeONUs, userState.destinationOlt.pvid);
-            // console.log(processedIpoeONUs,"customerInfo")
-            //  console.log( result.ipoeONUs," result.ipoeONUs")
-            // console.log( result.pppoeONUs," result.pppoeONUs")
+            
             userState.processedIpoeONUs = processedIpoeONUs;
+          console.log(userState.destinationOlt.pvid,"userState.destinationOlt.pvid");  
             const filePath = writeIpoeDataToFile(processedIpoeONUs, msg.from.id, userState.destinationOlt.pvid);
             const pppoeFilePath = writePppoeDataToFile(processedPppoeONUs, userId);
-              // console.log(processedPppoeONUs,"processedPppoeONUs");
-           // console.log(`IPoE data has been written to ${filePath}`);
-           
             
-            // Оновлюємо кількість мігрованих ONU та спеціальних випадків
             const { updatedMigratedONUs, multiportONUs } = processMultiportONUs(
               migratedONUs, 
               sourceResult, 
               result.configFile, 
               result.specialCasesFile
             );          
-             // console.log(multiportONUs);
+            
             result.specialCasesCount += multiportONUs.length;
-          
-            // Підрахунок PPPoE абонентів
             const pppoeCount = updatedMigratedONUs.length - result.ipoeONUs.length - result.specialCasesCount - result.opensvitCount;
             
-            // Формуємо повідомлення з результатами міграції
             const migrationSummary = `
-            📊 Результат міграції ONU:
+            📊 *Результат міграції ONU:*
             🔢 Загальна кількість мігрованих ONU: ${migratedONUs.length}
             🌐 Кількість IPOE ONU: ${result.ipoeONUs.length}
-            🔐 Кількість PPPoE ONU: ${result.pppoeCount}
+            🔐 Кількість PPPoE ONU: ${result.pppoeONUs.length}
             📡 Кількість OPENSVIT ONU: ${result.opensvitCount}
             🔌 Кількість багатопортових ONU: ${multiportONUs.length}
             ❓ Кількість ONU без конфігурації: ${result.unconfiguredCount}
             ${result.specialCasesCount > 0 ? `⚠️ Кількість спеціальних випадків: ${result.specialCasesCount}` : ''}
             `;
           
-            // Виводимо загальну інформацію про результати міграції
             await bot.sendMessage(chatId, migrationSummary, { parse_mode: 'Markdown' });
           
-            // Функція для відправки файлу з перевіркою на його існування
             const sendFileIfExists = async (filePath, caption) => {
               if (filePath && fs.existsSync(filePath)) {
                 const fileContent = fs.readFileSync(filePath, 'utf8');
@@ -452,7 +480,6 @@ for (let i = 0; i < summary.length; i += maxLength) {
                     parse_mode: 'Markdown'
                   };
             
-                  // Додаємо inline кнопки для обох конфігурацій
                   if (caption === 'Конфігурація для очистки source OLT:') {
                     options.reply_markup = {
                       inline_keyboard: [[
@@ -480,60 +507,63 @@ for (let i = 0; i < summary.length; i += maxLength) {
                 }
               }
             };
-            // Відправляємо файли в потрібному порядку
-
+      
             await sendFileIfExists(cleanupConfigFile, 'Конфігурація для очистки source OLT:');
             await sendFileIfExists(result.configFile, 'Конфігурація для destination OLT:');
             await sendFileIfExists(result.specialCasesFile, 'Деталі спеціальних випадків:');
             await sendFileIfExists(filePath, 'Дані IPoE ONU:');
             await sendFileIfExists(pppoeFilePath, 'Дані PPPOE ONU:');
             await sendFileIfExists(result.unconfiguredFile, 'ONU без конфігурації:');
-
-
+      
             showMenu(bot, chatId, true, false, true, true);
-            console.log('Debug info:', {
-              totalMigrated: migratedONUs.length,
-              ipoeCount: result.ipoeONUs.length,
-              pppoeCount: pppoeCount,
-              opensvitCount: result.opensvitCount,
-              specialCasesCount: result.specialCasesCount,
-              multiportCount: multiportONUs.length,
-              pvid1Olt: userState.sourceOlt.pvid,
-              pvid2Olt: userState.destinationOlt.pvid,
-            });
-        
           }
-        }catch (error) {
+        } catch (error) {
           console.error('Помилка при обробці конфігурацій:', error);
-          bot.sendMessage(chatId, `Виникла помилка при обробці конфігурацій: ${error.message}`);
+          await bot.sendMessage(chatId, `❌ Виникла помилка при обробці конфігурацій: ${error.message}`);
           showMenu(bot, chatId, false, false, false, false);
         }
       } else {
         userState.step = 'source_ip';
-        bot.sendMessage(chatId, 'Будь ласка, введіть IP-адресу першої OLT, з якої переносять конфіг:');
-        showMenu(bot, chatId, true);
-      }
+        const message = `
+        🖥️ *Введення IP-адреси першої OLT*
+        Будь ласка, введіть IP-адресу першої OLT, з якої будуть переноситися конфігурації.
+        📝 *Формат*: xxx.xxx.xxx.xxx
+        🔍 Після введення IP-адреси система автоматично спробує отримати інформацію про OLT.
+          `;
+        
+          await bot.sendMessage(chatId, message, { 
+            parse_mode: 'Markdown',
+          
+          });       
+          showMenu(bot, chatId, true, false, true, false, 'main');      }
     } else {
       bot.sendMessage(chatId, 'Спочатку вам потрібно завантажити архів з конфігами. Будь ласка, відправте архів у форматі ZIP.');
     }
   }else if (text === 'Перевірити статус ONU') {
     if (userState.step === 'completed' && userState.migratedONUs && userState.migratedONUs.length > 0) {
-      bot.sendMessage(chatId, 'Перевіряю статус ONU. Це може зайняти кілька хвилин...');
+      bot.sendMessage(chatId, '🔍 Перевіряю статус ONU. Це може зайняти кілька хвилин...');
       try {
         const onuMacs = userState.migratedONUs.map(onu => onu.mac);
         console.log(userState.migratedONUs, "userState.migratedONUs");
         console.log(onuMacs);
-        const onuStatuses = await checkOnuStatus(
+        let onuStatuses = await checkOnuStatus(
           userState.destinationOlt.ip,
           userState.destinationOlt.telnetLogin,
           userState.destinationOlt.telnetPass,
           onuMacs
         );
-        console.log(onuStatuses,onuStatuses);
-
-        const activeONUs = onuStatuses.filter(onu => onu.deregReason == 'auto-configured');
-        const inactiveONUs = onuStatuses.filter(onu => onu.deregReason != 'auto-configured');
-        
+         console.log(onuStatuses, "WQWWWWWWWWWWWwwwwwwwwweeeeee");
+  
+        let activeONUs = onuStatuses.filter(onu => onu.deregReason == 'auto-configured'||onu.deregReason == 'igured');
+   if(activeONUs.length==0){
+    activeONUs = onuStatuses.filter(onu => onu.status == 'auto-configured'||onu.status == 'igured');
+    activeONUs=activeONUs.map(e=>{
+      return {...e,deregReason:e.status}
+    })
+    onuStatuses=onuStatuses.map(e=>{
+      return {...e,deregReason:e.status}
+    })
+   }
         let powerLevels = [];
         try {
           powerLevels = await getOnuPowerLevels(
@@ -555,23 +585,25 @@ for (let i = 0; i < summary.length; i += maxLength) {
         const powerLevelsMap = new Map(powerLevels.map(pl => [pl.interface, pl.receivedPower]));
   
         // Створюємо повідомлення для користувача
-        let statusMessage = '📊 Статус мігрованих ONU:\n\n';
-        statusMessage += `🟢 Активні ONU: ${activeONUs.length}\n`;
-        statusMessage += `🔴 Неактивні ONU: ${inactiveONUs.length}\n`;
+        let statusMessage = '📊 *Статус мігрованих ONU:*\n\n';
+        statusMessage += `🟢 Активні ONU: *${activeONUs.length}*\n`;
+        statusMessage += `🔴 Неактивні ONU: *${onuStatuses.length-activeONUs.length}*\n`;
+        statusMessage += `📡 Загальна кількість ONU: *${onuStatuses.length}*\n`;
   
         // Створюємо детальний звіт у файлі
-        let detailedReport = 'Детальний звіт про статус ONU:\n\n';
-        onuStatuses.forEach(onu => {
-          detailedReport += `Інтерфейс: ${onu.interface}\n`;
-          detailedReport += `MAC: ${onu.mac}\n`;
-          detailedReport += `Статус: ${onu.deregReason}\n`;
+        let detailedReport = '📋 Детальний звіт про статус ONU:\n\n';
+        onuStatuses.forEach((onu, index) => {
+          detailedReport += `🔹 ONU ${index + 1}:\n`;
+          detailedReport += `   📍 Інтерфейс: ${onu.interface}\n`;
+          detailedReport += `   🔑 MAC: ${onu.mac}\n`;
+          detailedReport += `   🚦 Статус: ${onu.deregReason === 'auto-configured'||onu.deregReason === 'igured' ? '🟢 Активна' : '🔴 Неактивна'}\n`;
           
           // Додаємо інформацію про рівень потужності, якщо вона доступна
           const powerLevel = powerLevelsMap.get(onu.interface);
           if (powerLevel !== undefined) {
-            detailedReport += `Рівень потужності: ${powerLevel} dBm\n`;
+            detailedReport += `   📶 Рівень потужності: ${powerLevel} dBm\n`;
           } else {
-            detailedReport += `Рівень потужності: Недоступний\n`;
+            detailedReport += `   📶 Рівень потужності: Недоступний\n`;
           }
           
           detailedReport += '\n';
@@ -584,96 +616,157 @@ for (let i = 0; i < summary.length; i += maxLength) {
         fs.writeFileSync(filePath, detailedReport);
   
         // Відправляємо повідомлення та файл користувачу
-        await bot.sendMessage(chatId, statusMessage);
-        await bot.sendDocument(chatId, filePath, { caption: 'Детальний звіт про статус ONU' });
+        await bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
+        await bot.sendDocument(chatId, filePath, { caption: '📄 Детальний звіт про статус ONU' });
   
         // Видаляємо файл після відправки
         fs.unlinkSync(filePath);
       } catch (error) {
         console.error('Помилка при перевірці статусу ONU:', error);
-        bot.sendMessage(chatId, `Виникла помилка при перевірці статусу ONU: ${error.message}`);
+        bot.sendMessage(chatId, `❌ Виникла помилка при перевірці статусу ONU: ${error.message}`);
       }
       showMenu(bot, chatId, true, false, true, true);
     } else {
-      bot.sendMessage(chatId, 'Спочатку потрібно виконати процес міграції ONU.');
+      bot.sendMessage(chatId, '⚠️ Спочатку потрібно виконати процес міграції ONU.');
       showMenu(bot, chatId, false, false, false, false);
     }
   }
-    else if (text === 'Почати з початку') {
-    resetUserState(userId);
-    bot.sendMessage(chatId, 'Процес розпочато з початку. Будь ласка, введіть IP-адресу першої OLT, з якої переносять конфіг:');
-    userState.step = 'source_ip';
-    showMenu(bot, chatId, true);
-  } 
+  //   else if (text === 'Почати з початку') {
+  //   resetUserState(userId);
+  //   // bot.sendMessage(chatId, 'Процес розпочато з початку. Будь ласка, введіть IP-адресу першої OLT, з якої переносять конфіг:');
+  //   userState.step = 'source_ip';
+  //   showMenu(bot, chatId, true);
+  // } 
   else {
     switch (userState.step) {
       case 'source_ip':
       case 'destination_ip':
         if (isValidIp(text)) {
-          bot.sendMessage(chatId, 'Отримую інформацію про OLT. Це може зайняти кілька секунд...');
+          const waitingMessage = await sendAnimatedWaitingMessage(chatId, bot);
+          
           try {
             const deviceInfo = await takeIdDevice(text);
+            waitingMessage.stop();
+        
             if (typeof deviceInfo === 'string') {
-              bot.sendMessage(chatId, deviceInfo);
+              await bot.sendMessage(chatId, `❌ *Помилка*: ${deviceInfo}`, { parse_mode: 'Markdown' });
               showMenu(bot, chatId, true);
             } else {
               const oltData = userState.step === 'source_ip' ? userState.sourceOlt : userState.destinationOlt;
               oltData.ip = text;
-              if(PPOE[oltData.ip]!=undefined){
-                oltData.PPOE=PPOE[oltData.ip]
+              if (PPOE[oltData.ip] !== undefined) {
+                oltData.PPOE = PPOE[oltData.ip];
               }
               oltData.telnetLogin = deviceInfo.telnet_login;
               oltData.telnetPass = deviceInfo.telnet_pass;
               oltData.maxSfp = deviceInfo.olt_sfp;
-              oltData.ID=deviceInfo.ID
-              oltData.OPENSVIT=deviceInfo.OPENSVIT
-              
-              bot.sendMessage(chatId, 'Отримую назву OLT...');
+              oltData.ID = deviceInfo.ID;
+              oltData.OPENSVIT = deviceInfo.OPENSVIT;
+        console.log( `
+        ✅ *Інформацію про OLT успішно отримано!*
+        
+        📡 *IP-адреса*: \`${text}\`
+        🔢 *Максимальна кількість SFP*: ${deviceInfo.olt_sfp}
+        ${oltData.PPOE ? `🔐 *PPOE VLAN*: ${oltData.PPOE}` : ''}
+        ${deviceInfo.OPENSVIT ? `🌐 *OPENSVIT VLAN*: ${deviceInfo.OPENSVIT}` : ''}
+        
+        _Отримую назву OLT..._
+              `);
+              await bot.sendMessage(chatId, `
+        ✅ *Інформацію про OLT успішно отримано!*
+        
+        📡 *IP-адреса*: \`${text}\`
+        🔢 *Максимальна кількість SFP*: ${deviceInfo.olt_sfp}
+        ${oltData.PPOE ? `🔐 *PPOE VLAN*: ${oltData.PPOE}` : ''}
+        ${deviceInfo.OPENSVIT ? `🌐 *OPENSVIT VLAN*: ${deviceInfo.OPENSVIT}` : ''}
+        
+        _Отримую назву OLT..._
+              `, { parse_mode: 'Markdown' });
+        
               try {
                 console.log(`Attempting to get OLT name for ${oltData.ip}`);
                 oltData.name = await getNameOlt(oltData.ip, oltData.telnetLogin, oltData.telnetPass);
                 console.log(`Successfully retrieved OLT name: ${oltData.name}`);
-                proceedToNextStep(chatId, userId);
+                
+  
+                await bot.sendMessage(chatId, `📛 *Назва OLT*: ${oltData.name}`, { parse_mode: 'HTML' });
+                
+               await proceedToNextStep(chatId, userId);
               } catch (error) {
                 console.error('Error getting OLT name:', error);
                 if (error.message === 'All password attempts failed') {
-                  bot.sendMessage(chatId, `Не вдалося підключитися до OLT ${oltData.ip}. Всі спроби введення пароля не вдалися.`);
+                  await bot.sendMessage(chatId, `❌ *Помилка*: Не вдалося підключитися до OLT ${oltData.ip}. Всі спроби введення пароля не вдалися.`, { parse_mode: 'Markdown' });
                   showMenu(bot, chatId, true);
                 } else {
                   userState.step = userState.step === 'source_ip' ? 'source_name' : 'destination_name';
-                  bot.sendMessage(chatId, `Виникла помилка при отриманні назви OLT: ${error.message}. Будь ласка, введіть назву OLT вручну:`);
+                  await bot.sendMessage(chatId, `⚠️ *Увага*: Виникла помилка при отриманні назви OLT: ${error.message}. Будь ласка, введіть назву OLT вручну:`, { parse_mode: 'Markdown' });
                   showMenu(bot, chatId, true);
                 }
               }
             }
           } catch (error) {
+            waitingMessage.stop();
             console.error('Помилка при отриманні інформації про OLT:', error);
-            bot.sendMessage(chatId, `Виникла помилка при отриманні інформації про OLT: ${error.message}. Будь ласка, спробуйте ще раз.`);
+            await bot.sendMessage(chatId, `❌ *Помилка*: Виникла проблема при отриманні інформації про OLT. Будь ласка, спробуйте ще раз або зверніться до адміністратора.`, { parse_mode: 'Markdown' });
             showMenu(bot, chatId, true);
           }
         } else {
-          bot.sendMessage(chatId, 'Неправильний формат IP-адреси. Будь ласка, введіть коректну IP-адресу:');
+          await bot.sendMessage(chatId, '❌ *Помилка*: Неправильний формат IP-адреси. Будь ласка, введіть коректну IP-адресу:', { parse_mode: 'Markdown' });
           showMenu(bot, chatId, true);
-        }
+        } 
         break;
       case 'source_name':
       case 'destination_name':
         const oltData = userState.step === 'source_name' ? userState.sourceOlt : userState.destinationOlt;
         oltData.name = text;
         console.log(`User entered OLT name: ${oltData.name}`);
-        proceedToNextStep(chatId, userId);
+       await proceedToNextStep(bot,chatId, userId);
         break;
-      case 'source_sfp':
-        if (isValidSfp(text, userState.sourceOlt.maxSfp)) {
-          userState.sourceOlt.sfp = parseInt(text);
-          userState.step = 'destination_ip';
-          bot.sendMessage(chatId, 'Введіть IP-адресу другої OLT, на яку перейшли абоненти:');
+        case 'source_sfp':
+          if (isValidSfp(text, userState.sourceOlt.maxSfp)) {
+            userState.sourceOlt.sfp = parseInt(text);
+            userState.step = 'destination_ip';
+            
+            const successMessage = `
+        ✅ *SFP успішно встановлено!*
+        📊 Вибрано SFP номер: *${text}*
+        🔄 Переходимо до наступного кроку...
+        📝 Будь ласка, введіть IP-адресу другої OLT, на яку перейшли абоненти:
+            `;
+            
+            await bot.sendMessage(chatId, successMessage, { 
+              parse_mode: 'Markdown',
+              
+            });
+            
+            // Додаткове повідомлення-нагадування
+            setTimeout(() => {
+              bot.sendMessage(chatId, '🔍 Введіть IP-адресу другої OLT:');
+            }, 1000);
+            
+          } else {
+            const errorMessage = `
+        ❌ *Помилка: Неправильний номер SFP*
+        
+        🔢 Будь ласка, введіть число від 1 до ${userState.sourceOlt.maxSfp}.
+        
+        ℹ️ _Переконайтеся, що ви вводите номер в межах допустимого діапазону._
+            `;
+            
+            await bot.sendMessage(chatId, errorMessage, { 
+              parse_mode: 'Markdown',
+              reply_markup: {
+                keyboard: [
+                  ['🔙 Назад'],
+                  ['❌ Скасувати операцію']
+                ],
+                resize_keyboard: true,
+                one_time_keyboard: false
+              }
+            });
+          }
           showMenu(bot, chatId, true);
-        } else {
-          bot.sendMessage(chatId, `Неправильний номер SFP. Будь ласка, введіть число від 1 до ${userState.sourceOlt.maxSfp}:`);
-          showMenu(bot, chatId, true);
-        }
-        break;
+          break;
       case 'destination_sfp':
         if (isValidSfp(text, userState.destinationOlt.maxSfp)) {
           userState.destinationOlt.sfp = parseInt(text);
@@ -685,7 +778,7 @@ for (let i = 0; i < summary.length; i += maxLength) {
           
             const formatOltInfo = (olt) => `
           🔹 Назва: ${escapeMarkdown(olt.name)}
-             IP: ${olt.ip}
+             IP: \`${olt.ip}\`
              PPPOE_VLAN: ${olt.PPOE !== 0 ? escapeMarkdown(olt.PPOE.toString()) : 'немає'}
              OPENSVIT_VLAN: ${olt.OPENSVIT ? escapeMarkdown(olt.OPENSVIT.toString()) : 'немає'}
              SFP: ${escapeMarkdown(olt.sfp.toString())}/${escapeMarkdown(olt.maxSfp.toString())}`;
@@ -721,7 +814,7 @@ for (let i = 0; i < summary.length; i += maxLength) {
   }
 } else if (userState.mode === 'additional') {
   // Перевіряємо, чи текст відповідає одній з опцій меню
-  if (['Згенерувати темплейти для SFP', 'Прописати PPPoE VLAN', 'Прописати IPoE VLAN', 'Прописати Opensvit VLAN', 'Повернутися до головного меню'].includes(text)) {
+  if (['Згенерувати темплейти для SFP', 'Скинути гостьову'].includes(text)) {
     userState.waitingForSfpNumber = false;
     handleAdditionalOptions(chatId, text, userId);
   } else if (userState.waitingForSfpNumber) {
@@ -739,11 +832,15 @@ function showAdditionalMenu(chatId) {
     reply_markup: {
       keyboard: [
         ['Згенерувати темплейти для SFP'],
-        ['Прописати PPPoE VLAN'],
-        ['Прописати IPoE VLAN'],
-        ['Прописати Opensvit VLAN'],
-        ['Повернутися до головного меню']
+        ['Скинути гостьову'],
       ],
+      // keyboard: [
+      //   ['Згенерувати темплейти для SFP'],
+      //   ['Прописати PPPoE VLAN'],
+      //   ['Прописати IPoE VLAN'],
+      //   ['Прописати Opensvit VLAN'],
+      //   ['Повернутися до головного меню']
+      // ],
       resize_keyboard: true,
       one_time_keyboard: false
     }
@@ -758,18 +855,23 @@ function handleAdditionalOptions(chatId, option, userId) {
       userState.waitingForSfpNumber = true;
       bot.sendMessage(chatId, 'Введіть номер SFP (від 1 до 16):');
       break;
-    case 'Прописати PPPoE VLAN':
-      userState.waitingForSfpNumber = false;
-      configurePppoeVlan(chatId, bot);
+       case 'Скинути гостьову':
+        userState.waitingForSfpNumber = false;
+        resetGuestSesion(chatId, bot);
+        break;
       break;
-    case 'Прописати IPoE VLAN':
-      userState.waitingForSfpNumber = false;
-      configureIpoeVlan(chatId, bot);
-      break;
-    case 'Прописати Opensvit VLAN':
-      userState.waitingForSfpNumber = false;
-      configureOpensvitVlan(chatId, bot);
-      break;
+    // case 'Прописати PPPoE VLAN':
+    //   userState.waitingForSfpNumber = false;
+    //   configurePppoeVlan(chatId, bot);
+    //   break;
+    // case 'Прописати IPoE VLAN':
+    //   userState.waitingForSfpNumber = false;
+    //   configureIpoeVlan(chatId, bot);
+    //   break;
+    // case 'Прописати Opensvit VLAN':
+    //   userState.waitingForSfpNumber = false;
+    //   configureOpensvitVlan(chatId, bot);
+    //   break;
     case 'Повернутися до головного меню':
       userState.waitingForSfpNumber = false;
       bot.sendMessage(chatId, 'Виберіть режим роботи:', {

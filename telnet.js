@@ -1,5 +1,6 @@
 import net from 'net';
 import fs from 'fs';
+import { log } from 'console';
 
 function extractPonString(inputString) {
   const pattern = /pon[^>]*/;
@@ -93,6 +94,7 @@ export function getTelnetConfig(HOST, user, password, sfp, maxSfp) {
     let configStarted = false;
     let lastSfpFound = false;
     let timeoutId;
+    let previousLine = '';
 
     tn.connect(23, HOST, () => {
       console.log(`Connected to ${HOST}`);
@@ -102,30 +104,38 @@ export function getTelnetConfig(HOST, user, password, sfp, maxSfp) {
     function sendNextCommand() {
       if (commandIndex < commands.length) {
         tn.write(commands[commandIndex]);
+        console.log(commands[commandIndex]);
+        
         commandIndex++;
       }
     }
 
     function processBuffer() {
       const lines = buffer.split('\n');
-      for (const line of lines) {
-        if (line.includes(`interface EPON0/${sfp}`)) {
+    for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine.includes(`interface EPON0/${sfp}`)) {
           configStarted = true;
         }
         if (configStarted) {
-          if (line.match(/interface EPON0\/(\d+)/) && !line.includes(`interface EPON0/${sfp}`)) {
-            const currentSfp = parseInt(line.match(/interface EPON0\/(\d+)/)[1]);
+          if (trimmedLine.match(/interface EPON0\/(\d+)/) && !trimmedLine.includes(`interface EPON0/${sfp}`)) {
+            const currentSfp = parseInt(trimmedLine.match(/interface EPON0\/(\d+)/)[1]);
             if (currentSfp > sfp) {
               lastSfpFound = true;
               break;
             }
           }
-          if (sfp == maxSfp && (line.includes('#') || line.includes('>'))) {
+          if (sfp == maxSfp && (trimmedLine.includes('#') || trimmedLine.includes('>'))) {
             lastSfpFound = true;
             break;
           }
-          if (line.trim() !== '' && !line.includes('--More--') && !line.includes('Building configuration...')) {
-            config += line + '\n';
+          if (trimmedLine !== '' && !trimmedLine.includes('--More--') && !trimmedLine.includes('Building configuration...')) {
+            if (previousLine === 'switchport pvid' && /^\d+$/.test(trimmedLine)) {
+              config = config.trim() + ' ' + trimmedLine + '\n';
+            } else {
+              config += line + '\n';
+            }
+            previousLine = trimmedLine;
           }
         }
       }
@@ -195,7 +205,6 @@ export function checkOnuStatus(HOST, user, password, onuMacs) {
       ...onuMacs.map(mac => `show epon onu-information mac-address ${mac}\n`),
       "exit\n"
     ];
-    console.log(commands, "commandsvcommandscommandscommandscommandscommands");
     let onuStatuses = [];
 
     tn.connect(23, HOST, () => {
@@ -207,13 +216,14 @@ export function checkOnuStatus(HOST, user, password, onuMacs) {
         setTimeout(() => {
           const command = commands[commandIndex];
           if (command !== undefined) {
+            console.log(command);
             tn.write(command);
             commandIndex++;
           } else {
             console.error(`Undefined command at index ${commandIndex}`);
-            commandIndex++; // Skip this command and move to the next
+            commandIndex++;
           }
-        }, 1000); // 1 секунда затримки
+        }, 800);
       } else {
         processBuffer();
         if (onuStatuses.length === onuMacs.length) {
@@ -234,19 +244,21 @@ export function checkOnuStatus(HOST, user, password, onuMacs) {
       if (buffer.includes('--More--') || buffer.includes(' --More-- ')) {
         setTimeout(() => {
           tn.write(' ');
-        }, 1000); // 1 секунда затримки перед відправкою пробілу
+        }, 1000);
         buffer = buffer.replace(/--More--|-+\s+\(q\) quit\s+\([^)]+\)\s+\([^)]+\)\s+\([^)]+\)/, '');
       }
     });
 
     function processBuffer() {
       const lines = buffer.split('\n');
+      
       let currentMac = '';
       let onuInfo = {};
 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
-        
+        console.log(line, "line");
+
         if (line.includes('show epon onu-information mac-address')) {
           if (Object.keys(onuInfo).length > 0) {
             onuStatuses.push(onuInfo);
@@ -267,9 +279,21 @@ export function checkOnuStatus(HOST, user, password, onuMacs) {
           if (i + 1 < lines.length) {
             const nextLine = lines[i + 1].trim();
             const statusParts = nextLine.split(/\s+/).filter(part => part.trim() !== '');
-            if (statusParts.length >= 3) {
-              onuInfo.status = statusParts[statusParts.length - 1];
-              onuInfo.deregReason = statusParts[statusParts.length - 2] !== 'static' ? statusParts[statusParts.length - 2] : undefined;
+            if (statusParts.length >= 2) {
+              if (statusParts.includes('auto-configured')) {
+                onuInfo.status = 'auto-configured';
+                onuInfo.deregReason = 'N/A';
+              } else if (statusParts.includes('lost')) {
+                onuInfo.status = 'lost';
+                onuInfo.deregReason = statusParts[statusParts.length - 1];
+              } else if (statusParts.includes('deregistered')) {
+                onuInfo.status = 'deregistered';
+                onuInfo.deregReason = statusParts[statusParts.length - 1];
+              } else {
+                // Fallback for any other status
+                onuInfo.status = statusParts[statusParts.length - 1];
+                onuInfo.deregReason = statusParts[statusParts.length - 2] !== 'static' ? statusParts[statusParts.length - 2] : 'N/A';
+              }
             }
           }
         }
@@ -303,7 +327,7 @@ export function checkOnuStatus(HOST, user, password, onuMacs) {
       } else {
         resolve(onuStatuses);
       }
-    }, 60000); // 60 секунд таймаут
+    }, 60000); // 60 seconds timeout
   });
 }
 export function getOnuPowerLevels(activeONUs, HOST, user, password, progressCallback) {
@@ -819,5 +843,225 @@ export function configureOpensvitVlan(ip, telnetLogin, telnetPass, pvid, OPENSVI
       tn.destroy();
       reject(new Error('Connection timeout'));
     }, 180000); // 180 секунд загальний таймаут
+  });
+}
+
+
+
+
+
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+
+
+
+
+export async function configureAndCheckOnu(oltHost, telnetLogin, telnetPass, ifaceName) {
+  return new Promise((resolve, reject) => {
+    const tn = new net.Socket();
+    let buffer = '';
+    let commandIndex = 0;
+    let vlan = '';
+    let activeOnu = true;
+    let macAddress = '';
+    let macTableComplete = false;
+    let waitingForAbsentConfigConfirmation = false;
+    let pvid = null;
+    let configComplete = false;
+
+    // Формування VLAN
+    const [, sfp, onuNumber] = ifaceName.match(/EPON0\/(\d+):(\d+)/);
+    vlan = parseInt(onuNumber) > 9 ? `${sfp}${onuNumber}` : `${sfp}0${onuNumber}`;
+
+    const commands = [
+      `${telnetLogin}\n`,
+      `${telnetPass}\n`,
+      'enable\n',
+      'config\n',
+      `interface ${ifaceName}\n`,
+      `epon onu port 1 ctc vlan mode tag ${vlan}\n`,
+      `show mac address-table interface ${ifaceName}\n`,
+      `show running-config interface ePON 0/${sfp}\n`,
+      'exit\n',
+      'exit\n'
+    ];
+
+    tn.connect(23, oltHost, () => {
+      console.log(`Connected to ${oltHost}`);
+      sendNextCommand();
+    });
+
+    async function sendNextCommand() {
+      if (commandIndex < commands.length) {
+        await sleep(30);
+        const command = commands[commandIndex];
+        if (command) {
+          tn.write(command);
+          console.log(`Sending command: ${command.trim()}`);
+          commandIndex++;
+        } else {
+          console.error(`Undefined command at index ${commandIndex}`);
+          commandIndex++;
+        }
+      } else {
+        console.log('All commands sent, waiting for final output');
+      }
+    }
+
+    tn.on('data', async (data) => {
+      buffer += data.toString('ascii');
+      console.log('Received:', data.toString());
+
+      if (buffer.includes('--More--') || buffer.includes(' --More-- ')) {
+        tn.write(' ');
+        buffer = buffer.replace(/--More--|-+\s+\(q\) quit\s+\([^)]+\)\s+\([^)]+\)\s+\([^)]+\)/, '');
+        return;
+      }
+
+      if (buffer.includes('This ONU') && buffer.includes('is not auto-configured')) {
+        console.log('ONU is not auto-configured');
+        activeOnu = false;
+        waitingForAbsentConfigConfirmation = true;
+      }
+
+      if (waitingForAbsentConfigConfirmation && buffer.includes('Are you sure to use absent-config-mode(y/n)?')) {
+        console.log('Confirming absent-config-mode');
+        await sleep(30);
+        tn.write('y\n');
+        waitingForAbsentConfigConfirmation = false;
+        buffer = '';
+        return;
+      }
+
+      if (buffer.includes('Username:') || buffer.includes('Password:') || 
+          buffer.includes('#') || buffer.includes('>')) {
+        if (!macTableComplete) {
+          processMacAddressTable();
+        }
+        processPvidInfo();
+        if (commandIndex >= commands.length && pvid !== null) {
+          console.log('Configuration complete, closing connection');
+          tn.end();
+          return;
+        }
+        sendNextCommand();
+        buffer = '';
+      }
+    });
+
+    function processMacAddressTable() {
+      if (buffer.includes('Mac Address Table') && buffer.includes('-----')) {
+        const macMatch = buffer.match(/([0-9A-Fa-f]{4}[.]){2}[0-9A-Fa-f]{4}/);
+        if (macMatch) {
+          macAddress = macMatch[0];
+          console.log('Found MAC address:', macAddress);
+        } else {
+          console.log('MAC address not found in buffer');
+        }
+        macTableComplete = true;
+      }
+    }
+
+    function processPvidInfo() {
+      const pvidMatch = buffer.match(/switchport pvid (\d+)/);
+      if (pvidMatch) {
+        pvid = parseInt(pvidMatch[1]);
+        console.log('Found PVID:', pvid);
+      }
+    }
+
+    tn.on('error', (error) => {
+      console.error('Connection error:', error);
+      reject(error);
+    });
+
+    tn.on('close', () => {
+      console.log('Connection closed');
+      resolve({ vlan, macAddress, activeOnu, pvid });
+    });
+
+    setTimeout(() => {
+      tn.end();
+      reject(new Error('Connection timeout'));
+    }, 120000);
+  });
+}
+
+
+
+
+
+export async function restartOnuPort(oltHost, telnetLogin, telnetPass, ifaceName) {
+  return new Promise((resolve, reject) => {
+    const tn = new net.Socket();
+    let buffer = '';
+    const commands = [
+      telnetLogin,
+      telnetPass,
+      'enable',
+      'config',
+      `interface ${ifaceName}`,
+      'epon onu port 1 ctc shutdown',
+      'no epon onu port 1 ctc shutdown',
+      'exit',
+      'exit',
+      'exit'
+    ];
+    let commandIndex = 0;
+
+    tn.connect(23, oltHost, () => {
+      console.log(`Connected to ${oltHost}`);
+    });
+
+    async function processNextCommand() {
+      if (commandIndex < commands.length) {
+        const command = commands[commandIndex];
+        console.log(`Sending command: ${command}`);
+        tn.write(command + '\n');
+
+        if (command === 'epon onu port 1 ctc shutdown') {
+          await sleep(2000);
+          processNextCommand();
+        }
+
+        commandIndex++;
+      } else {
+        console.log('All commands sent, closing connection');
+        tn.end();
+      }
+    }
+
+    tn.on('data', async (data) => {
+      buffer += data.toString('ascii');
+      console.log('Received:', buffer);
+
+      if (buffer.includes('Username:') || buffer.includes('Password:') || 
+          buffer.includes('#') || buffer.includes('>')) {
+        buffer = '';
+        await processNextCommand();
+      }
+    });
+
+    tn.on('error', (error) => {
+      console.error('Connection error:', error);
+      reject(error);
+    });
+
+    tn.on('close', () => {
+      console.log('Connection closed');
+      if (commandIndex >= commands.length) {
+        resolve('ONU port restarted successfully');
+      } else {
+        reject(new Error('Connection closed before all commands were sent'));
+      }
+    });
+
+    setTimeout(() => {
+      tn.end();
+      reject(new Error('Connection timeout'));
+    }, 30000);
   });
 }

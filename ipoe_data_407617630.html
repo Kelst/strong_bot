@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPoE ONU Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #27ae60;
+            padding-bottom: 10px;
+        }
+        .onu-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-around;
+        }
+        .onu-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            width: calc(33% - 20px);
+           
+        }
+        .onu-item:hover {
+            box-shadow: 12px 12px 12px rgba(0,0,0,0.1) inset,
+            -10px -10px 10px white inset;
+        }
+        .onu-item p {
+            margin: 5px 0;
+        }
+        .onu-item strong {
+            color: #16a085;
+        }
+        .stats {
+            background-color: #e8f6f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        a {
+            color: #27ae60;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        a:hover {
+            color: #219653;
+        }
+        a:visited {
+            color: #8e44ad;
+        }
+        .update-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        @media (max-width: 768px) {
+            .onu-item {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Дані IPoE ONU</h1>
+  <h2>Неідентифіковані IPoE абоненти</h2><div class="onu-container">
+        <div class="onu-item">
+          <p><strong>MAC:</strong> Невідомо</p>
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:9</p>
+          <p><strong>IPoE VLAN:</strong> 909</p>
+        </div>
+      </div><h2>Ідентифіковані IPoE абоненти</h2><div class="onu-container">
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:10</p>
+          <p><strong>Логін:</strong> chornov1_office</p>
+          <p><strong>MAC:</strong> CC2DE0F792D7</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 910</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=184935" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:1</p>
+          <p><strong>Логін:</strong> pr_viden3v</p>
+          <p><strong>MAC:</strong> DC2C6E32D6D3</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 901</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=183668" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:4</p>
+          <p><strong>Логін:</strong> pr_viden3d</p>
+          <p><strong>MAC:</strong> 2CC81B62F231</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 904</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=183669" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:2</p>
+          <p><strong>Логін:</strong> pr_viden3z</p>
+          <p><strong>MAC:</strong> ECB97046EDDE</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 902</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=193288" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:3</p>
+          <p><strong>Логін:</strong> pr_viden3y</p>
+          <p><strong>MAC:</strong> 30DE4B83DC9B</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 903</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=219079" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:11</p>
+          <p><strong>Логін:</strong> chornov12</p>
+          <p><strong>MAC:</strong> EC086BAABC61</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 911</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=144553" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:8</p>
+          <p><strong>Логін:</strong> chornov1_1</p>
+          <p><strong>MAC:</strong> 744D28DACA44</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 908</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=185068" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:6</p>
+          <p><strong>Логін:</strong> chornov1_sfera</p>
+          <p><strong>MAC:</strong> DC2C6E50D90B</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 906</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=196399" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      
+        <div class="onu-item">
+          <p><strong>Новий інтерфейс:</strong> EPON0/9:5</p>
+          <p><strong>Логін:</strong> budivel2852</p>
+          <p><strong>MAC:</strong> 500FF5633289</p>
+          <p><strong>Server VLAN:</strong> 69</p>
+          <p><strong>IPoE VLAN:</strong> 905</p>
+          <p><strong>Білінг:</strong> <a href="https://billing.intelekt.cv.ua/admin/index.cgi?index=15&UID=196604" target="_blank">Відкрити в білінгу</a></p>
+        </div>
+      </div>
+    <div class="stats">
+      <h2>Загальна статистика IPoE абонентів</h2>
+      <p><strong>Загальна кількість IPoE ONU:</strong> 10</p>
+      <p><strong>Ідентифіковано:</strong> 9</p>
+      <p><strong>Не ідентифіковано:</strong> 1</p>
+    </div>
+  
+    </body>
+    </html>
+  
